@@ -26,7 +26,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
     /*step1: Set the number of Particles to 1000*/
-    this->num_particles = 1000;
+    this->num_particles = 200;
 
     /*step2: Initialize the Partical filter's position and add random Gaussian noise to each*/
     double std_x = std[0];
@@ -74,6 +74,12 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     double std_y = std_pos[1];
     double std_theta = std_pos[2];
 
+    default_random_engine gen;
+    // creates a normal (Gaussian) distribution for x, y and theta.
+    normal_distribution<double> dist_x(0, std_x);
+    normal_distribution<double> dist_y(0, std_y);
+    normal_distribution<double> dist_theta(0, std_theta);
+
     for(std::vector<Particle>::iterator iter_p = particles.begin(); iter_p!=particles.end();iter_p++)
     {
         /*now iter_p is a point to each particle*/
@@ -95,19 +101,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
         /*up to now, we have predict the position by the motion model*/
         /*it seems like we have to add noise*/
 
-        default_random_engine gen;
-        // creates a normal (Gaussian) distribution for x, y and theta.
-        normal_distribution<double> dist_x(iter_p->x, std_x);
-        normal_distribution<double> dist_y(iter_p->y, std_y);
-        normal_distribution<double> dist_theta(iter_p->theta, std_theta);
-
         double sample_x     = dist_x(gen);
         double sample_y     = dist_y(gen);
         double sample_theta = dist_theta(gen);
 
-        iter_p->x     = sample_x;
-        iter_p->y     = sample_y;
-        iter_p->theta = sample_theta;
+        iter_p->x     += sample_x;
+        iter_p->y     += sample_y;
+        iter_p->theta += sample_theta;
 
     }
 
@@ -120,30 +120,23 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
 
-    /*note that we should calc for each particle and set to particle.
-     * 	std::vector<int> associations;
-    std::vector<double> sense_x;
-    std::vector<double> sense_y;
-    */
 
-    for(int i = 0; i < predicted.size(); i++)
+    for(int i = 0; i < observations.size(); i++)
     {
-        /*find the closest from the observations*/
-        LandmarkObs predict = predicted[i];
-        LandmarkObs closest_observe;
-        double min = 20.0;
-        int index = 0;
+        double min = 1000.0;
+        int index = -1;
 
-        for(int j = 0; j < observations.size(); j++)
+        for(int j = 0; j < predicted.size(); j++)
         {
-            double distance = dist(predict.x,predict.y,observations[j].x, observations[j].y);
+            double distance = dist(predicted[j].x,predicted[j].y,observations[i].x, observations[i].y);
             if(distance < min)
             {
+                min = distance;
                 index = j;
             }
         }
-        closest_observe = observations[index];
-        predicted[i] = closest_observe;
+
+        observations[i].id = index;
 
     }
 
