@@ -27,7 +27,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     // NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
     /*step1: Set the number of Particles to 1000*/
-    this->num_particles = 100;
+    this->num_particles = 80;
 
     /*step2: Initialize the Partical filter's position and add random Gaussian noise to each*/
     double std_x = std[0];
