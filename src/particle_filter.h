@@ -115,6 +115,8 @@ public:
 	const bool initialized() const {
 		return is_initialized;
 	}
+
+    double CalcWeight(const double &x_diff, const double &y_diff, const double &sigma_x, const double &sigma_y);
 };
 
 
