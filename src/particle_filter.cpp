@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <iterator>
+#include <map>
 
 #include "particle_filter.h"
 
@@ -26,7 +27,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     // NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
     /*step1: Set the number of Particles to 1000*/
-    this->num_particles = 200;
+    this->num_particles = 100;
 
     /*step2: Initialize the Partical filter's position and add random Gaussian noise to each*/
     double std_x = std[0];
@@ -84,7 +85,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     {
         /*now iter_p is a point to each particle*/
 
-        if(yaw_rate > 0.001)
+        if(fabs(yaw_rate) > 0.0001)
         {
             iter_p->x     = iter_p->x + velocity * (sin(iter_p->theta + yaw_rate * delta_t) - sin(iter_p->theta)) / yaw_rate;
             iter_p->y     = iter_p->y + velocity * (cos(iter_p->theta) - cos(iter_p->theta + yaw_rate * delta_t)) / yaw_rate;
@@ -136,9 +137,8 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
             }
         }
 
-        observations[i].id = index;
+        observations[i].id = predicted[index].id;
     }
-
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -165,6 +165,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         double x     = particles[i].x;
         double y     = particles[i].y;
         double theta = particles[i].theta;
+
+//        particles[i].weight = 1.0;
 
         /*check the map*/
         for(int j = 0; j < map_landmarks.landmark_list.size(); j++)
@@ -196,6 +198,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         dataAssociation(LandmarksInRange, ObservationsInMap);
 
         /*update the weights*/
+        particles[i].weight = 1.0;
 
         for(int j = 0; j < ObservationsInMap.size(); j++)
         {
@@ -225,6 +228,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
             /*calc the weight*/
             double weight = CalcWeight(x_diff,y_diff,sigma_x,sigma_y);
+            if (weight < 0.0001)
+                weight = 0.0001;
 
             particles[i].weight *= weight;
 
@@ -232,6 +237,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 
     }
+
+
+
 
 
 }
@@ -246,6 +254,37 @@ void ParticleFilter::resample() {
     // TODO: Resample particles with replacement with probability proportional to their weight.
     // NOTE: You may find std::discrete_distribution helpful here.
     //   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+
+    /*step1: featch all the particle weights to a vector*/
+    vector<double> vWeights;
+    std::vector<Particle> particles_origin = particles;
+    for(int i =0; i < num_particles; i++)
+    {
+        vWeights.push_back(particles[i].weight);
+    }
+
+    discrete_distribution<> d(vWeights.begin(),vWeights.end());
+    default_random_engine gen;
+
+    map<int, int> m;
+    for(int n=0; n<num_particles; ++n)
+    {
+        ++m[d(gen)];
+    }
+    particles.clear();
+    particles.reserve(num_particles);
+    for(auto p : m)
+    {
+        //std::cout << p.first << " generated " << p.second << " times\n";
+        for(int count = 0; count < p.second; count++)
+        {
+            particles.push_back(particles_origin[p.first]);
+        }
+
+    }
+
+    /*now we get the resample weights*/
+
 
 }
 
